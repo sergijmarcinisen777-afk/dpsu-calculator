@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>ТЕМ - Спеціальні умови (Коефіцієнти)</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #1b3022; color: #fff; padding: 20px; display: flex; justify-content: center; }
+        .card { max-width: 700px; width: 100%; background: rgba(255,255,255,0.05); padding: 25px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.1); }
+        h2 { color: #f39c12; border-bottom: 2px solid #f39c12; padding-bottom: 10px; margin-top: 0; }
+        .row { background: rgba(255,255,255,0.1); padding: 12px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .info b { display: block; font-size: 14px; }
+        .info small { color: #bdc3c7; font-size: 11px; }
+        .input-box { width: 70px; padding: 8px; border-radius: 5px; border: none; text-align: center; font-weight: bold; }
+        .btn { width: 100%; padding: 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; text-transform: uppercase; margin-top: 10px; }
+        .btn-save { background: #27ae60; color: white; }
+        .btn-back { background: #95a5a6; color: white; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h2>🛠️ Спеціальні умови роботи</h2>
+    
+    <div class="row">
+        <div class="info"><b>Гірська місцевість (K6)</b><small>Висота над рівнем моря > 500м (від 5% до 20%)</small></div>
+        <input type="number" id="k6" class="input-box" value="0">
+    </div>
+    <div class="row">
+        <div class="info"><b>Складний план доріг (K7)</b><small>Наявність великої к-сті поворотів (до 10%)</small></div>
+        <input type="number" id="k7" class="input-box" value="0">
+    </div>
+    <div class="row">
+        <div class="info"><b>Важкі шляхові умови (K8)</b><small>Бездоріжжя, пісок, снігові замети (до 35%)</small></div>
+        <input type="number" id="k8" class="input-box" value="0">
+    </div>
+    <div class="row">
+        <div class="info"><b>Період обкатки (K9)</b><small>Для нових машин або після кап. ремонту (до 10%)</small></div>
+        <input type="number" id="k9" class="input-box" value="0">
+    </div>
+    <div class="row">
+        <div class="info"><b>Напрацювання (старіння ТЗ) (K10)</b><small>Пробіг > 100 тис. км або термін > 5 років (до 5%)</small></div>
+        <input type="number" id="k10" class="input-box" value="0">
+    </div>
+    <div class="row">
+        <div class="info"><b>Навчальна їзда (K11)</b><small>При навчанні водіїв (до 20%)</small></div>
+        <input type="number" id="k11" class="input-box" value="0">
+    </div>
+    <div class="row">
+        <div class="info"><b>Інтенсивні умови руху (K12)</b><small>Робота в колонах, густий потік (до 5%)</small></div>
+        <input type="number" id="k12" class="input-box" value="0">
+    </div>
+    <div class="row">
+        <div class="info"><b>Часті зупинки (K13)</b><small>Технологічні зупинки, маршрутні таксі (до 10%)</small></div>
+        <input type="number" id="k13" class="input-box" value="0">
+    </div>
+
+    <button class="btn btn-save" onclick="saveExtra()">Зберегти спеціальні коефіцієнти</button>
+    <button class="btn btn-back" onclick="window.close()">Повернутися</button>
+</div>
+
+<script>
+    window.onload = function() {
+        const saved = JSON.parse(localStorage.getItem('extra_coeffs')) || {};
+        for (let i = 6; i <= 13; i++) {
+            if (saved['k' + i]) document.getElementById('k' + i).value = saved['k' + i];
+        }
+    }
+
+    function saveExtra() {
+        const data = {};
+        for (let i = 6; i <= 13; i++) {
+            data['k' + i] = parseFloat(document.getElementById('k' + i).value) || 0;
+        }
+        localStorage.setItem('extra_coeffs', JSON.stringify(data));
+        alert("Спеціальні коефіцієнти збережені!");
+        window.close();
+    }
+</script>
+</body>
+</html>

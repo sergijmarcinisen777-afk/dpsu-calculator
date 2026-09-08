@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Книга обліку роботи машин 595</title>
+    <style>
+        @page { size: landscape; margin: 5mm; }
+        body { font-family: "Times New Roman", serif; background: #525659; margin: 0; padding: 20px; }
+        .paper { background: white; width: 297mm; min-height: 210mm; padding: 10mm; margin: 0 auto; box-shadow: 0 0 15px rgba(0,0,0,0.5); position: relative; }
+        
+        .controls { background: #fff; padding: 15px; width: 297mm; margin: 0 auto 15px; display: flex; gap: 10px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        
+        h2 { text-align: center; font-size: 14pt; text-transform: uppercase; margin: 0; }
+        .sub-title { text-align: center; font-size: 10pt; margin-bottom: 10px; }
+
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; border: 2px solid black; }
+        th, td { border: 1px solid black; padding: 2px; text-align: center; font-size: 8pt; overflow: hidden; }
+        
+        /* Специфічний вертикальний текст */
+        .v-header {
+            height: 140px;
+            vertical-align: middle;
+            position: relative;
+        }
+        .v-text {
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+            white-space: nowrap;
+            display: inline-block;
+            line-height: 0.9;
+        }
+
+        .col-num td { background: #f0f0f0; font-size: 7pt; height: 18px; font-weight: bold; }
+        
+        /* Стиль для ручного редагування */
+        [contenteditable="true"]:hover { background: #fffde7; outline: 1px solid #fbc02d; }
+        [contenteditable="true"]:focus { background: #fff9c4; outline: 2px solid #fbc02d; }
+
+        .car-header { width: 100%; margin-bottom: 5px; font-weight: bold; font-size: 11pt; }
+        .underline { border-bottom: 1px solid black; display: inline-block; min-width: 150px; padding: 0 5px; }
+
+        .btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; color: white; transition: 0.2s; }
+        .btn-add { background: #27ae60; }
+        .btn-save { background: #f39c12; }
+        .btn-print { background: #2c3e50; }
+        .btn-clear { background: #e74c3c; }
+
+        @media print {
+            .controls, .btn { display: none !important; }
+            body { background: white; padding: 0; }
+            .paper { box-shadow: none; width: 100%; padding: 5mm; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="controls">
+    <button class="btn btn-add" onclick="addFromLastReport()">➕ ДОДАТИ З ДЛ</button>
+    <button class="btn btn-save" onclick="saveTable()">💾 ЗБЕРЕГТИ ПРАВКИ</button>
+    <button class="btn btn-print" onclick="window.print()">🖨️ ДРУКУВАТИ</button>
+    <button class="btn btn-clear" onclick="clearBook()">🗑️ ОЧИСТИТИ ВСЕ</button>
+    <button onclick="window.location.href='index.html'" style="padding: 8px; cursor:pointer;">🏠 НА ГОЛОВНУ</button>
+</div>
+
+<div class="paper">
+    <div class="sub-title">Додаток 12 до Порядку (пункт 3.1 розділу III)</div>
+    <h2>КНИГА ОБЛІКУ РОБОТИ МАШИН ТА ВИТРАЧАННЯ ПАЛЬНО-МАСТИЛЬНИХ МАТЕРІАЛІВ</h2>
+    
+    <div class="car-header" style="margin-top:15px;">
+        Марка (тип) машини <span class="underline" id="car_type" contenteditable="true">________________</span>
+        Номерний знак <span class="underline" id="car_plate" contenteditable="true">________________</span>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th colspan="2" rowspan="2">Дорожній лист</th>
+                <th colspan="4">Пройдено км (відпрацьовано мотогодин)</th>
+                <th colspan="2" rowspan="2">Перевезено, т</th>
+                <th rowspan="3" class="v-header"><span class="v-text">Виконано, т/км</span></th>
+                <th rowspan="3" class="v-header"><span class="v-text">Показник ефект., %</span></th>
+                <th colspan="14">Матеріальні засоби, л</th>
+            </tr>
+            <tr>
+                <th colspan="3">автомобілем</th>
+                <th rowspan="2" class="v-header"><span class="v-text">з причепом</span></th>
+                <th colspan="7">пального</th>
+                <th colspan="7">мастила</th>
+            </tr>
+            <tr>
+                <th class="v-header"><span class="v-text">дата (період)</span></th>
+                <th class="v-header"><span class="v-text">номер</span></th>
+                <th class="v-header"><span class="v-text">усього</span></th>
+                <th class="v-header"><span class="v-text">з вантажем</span></th>
+                <th class="v-header"><span class="v-text">без вантажу</span></th>
+                <th class="v-header"><span class="v-text">найменування вантажу</span></th>
+                <th class="v-header"><span class="v-text">кількість</span></th>
+                
+                <th class="v-header"><span class="v-text">наявність перед виїздом</span></th>
+                <th class="v-header"><span class="v-text">отримано</span></th>
+                <th class="v-header"><span class="v-text">наявність при пост.</span></th>
+                <th class="v-header"><span class="v-text">використано</span></th>
+                <th class="v-header"><span class="v-text">має бути за нормою</span></th>
+                <th class="v-header"><span class="v-text">економія</span></th>
+                <th class="v-header"><span class="v-text">перевитрата</span></th>
+
+                <th class="v-header"><span class="v-text">наявність перед виїздом</span></th>
+                <th class="v-header"><span class="v-text">отримано</span></th>
+                <th class="v-header"><span class="v-text">наявність при пост.</span></th>
+                <th class="v-header"><span class="v-text">використано</span></th>
+                <th class="v-header"><span class="v-text">має бути за нормою</span></th>
+                <th class="v-header"><span class="v-text">економія</span></th>
+                <th class="v-header"><span class="v-text">перевитрата</span></th>
+            </tr>
+            <tr class="col-num">
+                <td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td><td>10</td>
+                <td>11</td><td>12</td><td>13</td><td>14</td><td>15</td><td>16</td><td>17</td><td>18</td><td>19</td><td>20</td>
+                <td>21</td><td>22</td><td>23</td><td>24</td><td>25</td><td>26</td><td>27</td>
+            </tr>
+        </thead>
+        <tbody id="bookBody">
+            </tbody>
+    </table>
+</div>
+
+<script>
+    function renderBook() {
+        const records = JSON.parse(localStorage.getItem('work_book_final')) || [];
+        const body = document.getElementById('bookBody');
+        body.innerHTML = "";
+
+        records.forEach((rec, index) => {
+            const row = `<tr data-index="${index}">
+                <td contenteditable="true">${rec.date}</td>
+                <td contenteditable="true">${rec.num}</td>
+                <td contenteditable="true">${rec.s_all}</td>
+                <td contenteditable="true">${rec.s_v}</td>
+                <td contenteditable="true">${rec.s_b}</td>
+                <td contenteditable="true">0</td>
+                <td contenteditable="true">${rec.v_name}</td>
+                <td contenteditable="true">${rec.v_weight}</td>
+                <td contenteditable="true">${rec.tkm}</td>
+                <td contenteditable="true">100</td>
+                
+                <td contenteditable="true">${rec.f_s}</td>
+                <td contenteditable="true">${rec.f_g}</td>
+                <td contenteditable="true">${rec.f_e}</td>
+                <td contenteditable="true">${rec.f_u}</td>
+                <td contenteditable="true">${rec.f_u}</td>
+                <td contenteditable="true">0</td><td contenteditable="true">0</td>
+
+                <td contenteditable="true">${rec.o_s}</td>
+                <td contenteditable="true">0</td>
+                <td contenteditable="true">${rec.o_e}</td>
+                <td contenteditable="true">${rec.o_u}</td>
+                <td contenteditable="true">${rec.o_u}</td>
+                <td contenteditable="true">0</td><td contenteditable="true">0</td>
+            </tr>`;
+            body.innerHTML += row;
+        });
+    }
+
+    function addFromLastReport() {
+        const d = JSON.parse(localStorage.getItem('last_report_data'));
+        if (!d) return alert("Дані в калькуляторі не знайдені!");
+
+        const newRec = {
+            date: new Date().toLocaleDateString('uk-UA'),
+            num: Math.floor(Math.random() * 100) + 1,
+            s_all: (parseFloat(d.distCity) + parseFloat(d.distOut)).toFixed(1),
+            s_v: d.distCity,
+            s_b: d.distOut,
+            v_name: "МЗ",
+            v_weight: d.weight,
+            tkm: (d.weight * (parseFloat(d.distCity) + parseFloat(d.distOut))).toFixed(1),
+            f_s: "50", f_g: "0", f_u: d.totalFuel, f_e: (50 - d.totalFuel).toFixed(1),
+            o_s: "5", o_u: d.oils.m, o_e: (5 - d.oils.m).toFixed(2)
+        };
+
+        const records = JSON.parse(localStorage.getItem('work_book_final')) || [];
+        records.push(newRec);
+        localStorage.setItem('work_book_final', JSON.stringify(records));
+        renderBook();
+    }
+
+    function saveTable() {
+        const rows = document.querySelectorAll("#bookBody tr");
+        const updatedRecords = [];
+        rows.forEach(row => {
+            const cells = row.querySelectorAll("td");
+            updatedRecords.push({
+                date: cells[0].innerText, num: cells[1].innerText,
+                s_all: cells[2].innerText, s_v: cells[3].innerText, s_b: cells[4].innerText,
+                v_name: cells[6].innerText, v_weight: cells[7].innerText,
+                tkm: cells[8].innerText, f_s: cells[10].innerText, f_g: cells[11].innerText,
+                f_e: cells[12].innerText, f_u: cells[13].innerText,
+                o_s: cells[17].innerText, o_e: cells[19].innerText, o_u: cells[20].innerText
+            });
+        });
+        localStorage.setItem('work_book_final', JSON.stringify(updatedRecords));
+        alert("Зміни збережено!");
+    }
+
+    function clearBook() {
+        if(confirm("Видалити всі записи?")) {
+            localStorage.removeItem('work_book_final');
+            renderBook();
+        }
+    }
+
+    window.onload = renderBook;
+</script>
+</body>
+</html>
