@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Система ТЕМ - Головна</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background: #1b3022; 
+            margin: 0; 
+            height: 100vh; 
+            display: flex;
+            align-items: center;
+            justify-content: flex-end; 
+            padding-right: 10%; 
+            color: white; 
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Фоновий герб */
+        body::before {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px;
+            height: 600px;
+            background-image: url('image_935d1f.png'); /* Ваш існуючий фон */
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            opacity: 0.1;
+            z-index: 0;
+        }
+
+        .menu-container {
+            position: relative;
+            z-index: 1;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 40px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            width: 400px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+
+        /* Блок з логотипами ДПСУ та НАДПСУ */
+        .logos-header {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(46, 204, 113, 0.3);
+        }
+
+        .logos-header img {
+            height: 80px; /* Розмір логотипів */
+            width: auto;
+            filter: drop-shadow(0 0 5px rgba(255,255,255,0.2));
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 30px;
+            color: #2ecc71;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .btn {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            color: white;
+            padding: 18px 25px;
+            margin-bottom: 15px;
+            border-radius: 12px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .btn:hover {
+            transform: translateX(-10px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .btn-calc { background: #27ae60; }
+        .btn-calc:hover { background: #2ecc71; }
+
+        .btn-map { background: #d35400; }
+        .btn-map:hover { background: #e67e22; }
+
+        .btn-book { background: #8e44ad; }
+        .btn-book:hover { background: #9b59b6; }
+
+        .icon { margin-right: 15px; font-size: 22px; min-width: 30px; }
+        
+        .footer-note {
+            margin-top: 20px;
+            font-size: 11px;
+            color: #bdc3c7;
+            text-align: center;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="menu-container">
+        <div class="logos-header">
+    <img src="dpsu.png" alt="ДПСУ">
+    <img src="nadpsu.png" alt="НАДПСУ">
+</div>
+
+        <h1>СИСТЕМА ОБЛІКУ ТЕМ</h1>
+        
+        <a href="calc.html" class="btn btn-calc">
+            <span class="icon">🧮</span> Калькулятор ПММ
+        </a>
+
+        <a href="book.html" class="btn btn-book">
+            <span class="icon">📖</span> Книга обліку
+        </a>
+		<a href="library.html" class="btn btn-docs" style="background: #2980b9;">
+    <span class="icon">📚</span> Література та Нормативи
+</a>
+		
+
+        <div class="footer-note">
+            Програмний комплекс ТЕМ <br>
+            
+        </div>
+    </div>
+
+</body>
+</html>

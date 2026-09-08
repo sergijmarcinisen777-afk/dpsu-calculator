@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>База ТЗ - Керування</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #1b3022; color: #fff; margin: 0; display: flex; height: 100vh; overflow: hidden; }
+        
+        /* Ліва панель з формою додавання */
+        .sidebar { width: 320px; background: rgba(0,0,0,0.4); padding: 20px; border-right: 2px solid #2ecc71; display: flex; flex-direction: column; box-sizing: border-box; overflow-y: auto; }
+        
+        /* Основна область зі списком авто */
+        .main-container { flex-grow: 1; padding: 20px; overflow-y: auto; background: rgba(255,255,255,0.02); }
+        
+        h2 { color: #2ecc71; font-size: 18px; text-transform: uppercase; border-bottom: 1px solid rgba(46,204,113,0.3); padding-bottom: 10px; margin-top: 0; }
+        .form-group { margin-bottom: 12px; }
+        .form-group label { font-size: 10px; color: #bdc3c7; display: block; margin-bottom: 4px; text-transform: uppercase; }
+        .form-group input { width: 100%; padding: 10px; border-radius: 4px; border: none; font-weight: bold; box-sizing: border-box; background: #fff; color: #000; }
+
+        /* Кнопка збереження - ТУТ ВОНА Є */
+        .btn-save { background: #27ae60; color: white; padding: 14px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; text-transform: uppercase; width: 100%; margin-top: 10px; transition: 0.2s; font-size: 13px; }
+        .btn-save:hover { background: #2ecc71; box-shadow: 0 0 10px rgba(46,204,113,0.4); }
+        
+        .btn-back { background: #34495e; color: white; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; text-transform: uppercase; width: 100%; margin-top: 20px; text-decoration: none; display: block; text-align: center; font-size: 11px; }
+
+        /* Картка автомобіля у списку */
+        .car-card { background: rgba(255,255,255,0.05); margin-bottom: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; position: relative; transition: 0.2s; animation: fadeIn 0.3s; }
+        .car-card:hover { border-color: #2ecc71; background: rgba(46, 204, 113, 0.05); }
+        
+        .car-main-info { padding: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .car-name { font-size: 16px; font-weight: bold; color: #2ecc71; }
+        
+        .car-details { display: none; padding: 15px; background: rgba(0,0,0,0.3); border-top: 1px solid rgba(255,255,255,0.1); border-radius: 0 0 8px 8px; }
+        .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px; color: #ecf0f1; }
+        .detail-grid b { color: #f1c40f; }
+        
+        /* Маленька кнопка видалення з краю */
+        .btn-mini-del { position: absolute; top: 12px; right: 12px; background: rgba(231, 76, 60, 0.1); color: #e74c3c; border: 1px solid #e74c3c; border-radius: 4px; width: 24px; height: 24px; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center; z-index: 5; transition: 0.2s; }
+        .btn-mini-del:hover { background: #e74c3c; color: #fff; }
+        
+        .btn-select-calc { background: #2980b9; color: white; border: none; padding: 12px; border-radius: 4px; width: 100%; margin-top: 15px; cursor: pointer; font-weight: bold; text-transform: uppercase; font-size: 12px; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <h2>➕ Нове авто</h2>
+    
+    <div class="form-group">
+        <label>Марка, модель та Номер:</label>
+        <input type="text" id="n_name" placeholder="Напр: ГАЗ-66 (ВВ 0001 АА)">
+    </div>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div class="form-group"><label>Hs (л/100):</label><input type="number" id="n_hsm" step="0.01" value="0.0"></div>
+        <div class="form-group"><label>Hw (Вантаж):</label><input type="number" id="n_hw" step="0.01" value="1.3"></div>
+    </div>
+    
+    <div style="font-size: 9px; color: #2ecc71; margin-top: 5px; text-align: center; font-weight: bold; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">НОРМИ ОЛИВ (л)( на 100 л ПАЛИВА )</div>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 5px;">
+        <div class="form-group"><label>Мот. (M):</label><input type="number" id="n_om" step="0.01" value="2.7"></div>
+        <div class="form-group"><label>Транс. (T):</label><input type="number" id="n_ot" step="0.01" value="0.3"></div>
+        <div class="form-group"><label>Спец. (S):</label><input type="number" id="n_os" step="0.01" value="0.1"></div>
+        <div class="form-group"><label>Пласт. (P):</label><input type="number" id="n_op" step="0.01" value="0.2"></div>
+    </div>
+    
+    <button class="btn-save" onclick="addCar()">💾 Зберегти в базу</button>
+    
+    <a href="calc.html" class="btn-back">← На головну (Розрахунок)</a>
+</div>
+
+<div class="main-container" id="carList">
+    </div>
+
+<script>
+    // Функція відображення списку з пам'яті
+    function render() {
+        const db = JSON.parse(localStorage.getItem('cars')) || {};
+        const list = document.getElementById('carList');
+        list.innerHTML = "";
+        
+        const entries = Object.keys(db);
+        if (entries.length === 0) {
+            list.innerHTML = '<div style="text-align:center; color:#555; margin-top:50px;">База автомобілів порожня.</div>';
+            return;
+        }
+
+        for (let name in db) {
+            const data = db[name];
+            list.innerHTML += `
+                <div class="car-card" onclick="toggleDetails('${name}')">
+                    <button class="btn-mini-del" onclick="event.stopPropagation(); deleteCar('${name}')" title="Видалити">✕</button>
+                    <div class="car-main-info">
+                        <span class="car-name">🚗 ${name}</span>
+                        <span style="color:#666; font-size:10px; text-transform:uppercase;">Детальніше</span>
+                    </div>
+                    <div id="details-${name}" class="car-details">
+                        <div class="detail-grid">
+                            <span><b>Hs (базова):</b> ${data.hsm} л</span>
+                            <span><b>Hw (вантаж):</b> ${data.hsz || 0} л</span>
+                            <span><b>Моторна (M):</b> ${data.om}л</span>
+                            <span><b>Трансм. (T):</b> ${data.ot}л</span>
+                            <span><b>Спеціальна (S):</b> ${data.os}л</span>
+                            <span><b>Пластична (P):</b> ${data.op}л</span>
+                        </div>
+                        <button class="btn-select-calc" onclick="event.stopPropagation(); selectForCalc('${name}')">Додати до розрахунків</button>
+                    </div>
+                </div>`;
+        }
+    }
+
+    // Відкриття/Закриття деталей при кліку
+    function toggleDetails(name) {
+        const el = document.getElementById('details-' + name);
+        const isVisible = el.style.display === 'block';
+        
+        // Закриваємо всі інші відкриті картки
+        document.querySelectorAll('.car-details').forEach(d => d.style.display = 'none');
+        
+        // Відкриваємо поточну, якщо вона була закрита [cite: 7, 16]
+        el.style.display = isVisible ? 'none' : 'block';
+    }
+
+    // Функція додавання нового авто в localStorage
+    function addCar() {
+        const nameField = document.getElementById('n_name');
+        const name = nameField.value.trim();
+        
+        if(!name) {
+            alert("Помилка: Введіть назву автомобіля та його номер!");
+            return;
+        }
+        
+        let db = JSON.parse(localStorage.getItem('cars')) || {};
+        
+        // Записуємо дані з полів [cite: 13]
+        db[name] = {
+            hsm: parseFloat(document.getElementById('n_hsm').value) || 0,
+            hsz: parseFloat(document.getElementById('n_hw').value) || 0,
+            om: parseFloat(document.getElementById('n_om').value) || 0,
+            ot: parseFloat(document.getElementById('n_ot').value) || 0,
+            os: parseFloat(document.getElementById('n_os').value) || 0,
+            op: parseFloat(document.getElementById('n_op').value) || 0
+        };
+        
+        localStorage.setItem('cars', JSON.stringify(db));
+        
+        // Очищення полів та оновлення списку [cite: 11]
+        nameField.value = "";
+        render();
+        alert("Автомобіль '" + name + "' успішно додано!");
+    }
+
+    // Видалення авто з бази
+    function deleteCar(name) {
+        if(confirm("Видалити '" + name + "' з бази?")) {
+            let db = JSON.parse(localStorage.getItem('cars')) || {};
+            delete db[name];
+            localStorage.setItem('cars', JSON.stringify(db));
+            render();
+        }
+    }
+
+    // Перенесення даних у калькулятор
+    function selectForCalc(name) {
+    // 1. Зберігаємо як вибране зараз
+    localStorage.setItem('selected_car_name', name);
+    
+    // 2. Додаємо в список останніх 5
+    let recent = JSON.parse(localStorage.getItem('recent_cars')) || [];
+    recent = recent.filter(item => item !== name);
+    recent.unshift(name);
+    recent = recent.slice(0, 5);
+    localStorage.setItem('recent_cars', JSON.stringify(recent));
+    
+    // 3. Переходимо в калькулятор
+    window.location.href = 'calc.html';
+}
+
+    // Завантаження списку при старті
+    window.onload = render;
+</script>
+
+</body>
+</html>

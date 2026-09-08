@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>ТЕМ - Професійний Навігатор</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- html2canvas для скріншотів -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        body, html { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
+        #app-container { display: flex; height: 100vh; }
+        
+        .sidebar { 
+            width: 380px; 
+            background: #fff; 
+            border-right: 2px solid #ddd; 
+            display: flex; 
+            flex-direction: column; 
+            padding: 15px; 
+            z-index: 1000; 
+            overflow-y: auto; 
+            box-sizing: border-box;
+        }
+        
+        #map { flex: 1; height: 100%; background: #f0f0f0; }
+        
+        /* Кнопка повернення до калькулятора */
+        .btn-back-calc {
+            background: #2c3e50;
+            color: white;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 13px;
+            margin-bottom: 10px;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: background 0.2s;
+        }
+        .btn-back-calc:hover { background: #1a252f; }
+
+        .header { background: #1a73e8; color: white; padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 10px; }
+        
+        /* Блок пошуку */
+        .search-container { position: relative; margin-bottom: 10px; }
+        .search-box { display: flex; gap: 5px; }
+        .search-input { 
+            flex: 1; 
+            padding: 9px; 
+            border: 1px solid #1a73e8; 
+            border-radius: 6px; 
+            font-size: 12px; 
+            outline: none; 
+        }
+        .btn-search { background: #1a73e8; color: white; border: none; border-radius: 6px; padding: 0 12px; cursor: pointer; font-weight: bold; }
+        
+        .search-results {
+            position: absolute;
+            top: 40px;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            max-height: 180px;
+            overflow-y: auto;
+            display: none;
+            z-index: 2000;
+        }
+        .search-item { padding: 8px 10px; font-size: 11px; cursor: pointer; border-bottom: 1px solid #eee; }
+        .search-item:hover { background: #e8f0fe; color: #1a73e8; }
+
+        .btn-transfer { background: #27ae60; color: white; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-bottom: 5px; width: 100%; }
+        .btn-save { background: #3498db; color: white; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; margin-bottom: 10px; }
+        
+        .city-item { display: flex; justify-content: space-between; padding: 8px; margin-bottom: 5px; border-left: 6px solid #ccc; background: #f1f3f4; font-size: 12px; font-weight: bold; border-radius: 0 4px 4px 0; }
+        
+        /* Картки збереження */
+        .route-card { background: #f8f9fa; border: 1px solid #ddd; padding: 10px; border-radius: 8px; margin-bottom: 12px; cursor: pointer; position: relative; transition: 0.3s; }
+        .route-card:hover { border-color: #1a73e8; background: #f1f7ff; }
+        .route-card img { width: 100%; border-radius: 5px; margin-top: 8px; border: 1px solid #ccc; display: none; }
+        .route-card.active img { display: block; }
+        .btn-del-route { position: absolute; top: 5px; right: 5px; background: #e74c3c; color: white; border: none; border-radius: 4px; padding: 2px 8px; cursor: pointer; font-size: 10px; }
+        
+        #status { font-size: 11px; color: #d35400; text-align: center; margin: 5px 0; font-weight: bold; min-height: 15px; }
+        .btn-clear { background: #e74c3c; color: white; padding: 10px; border: none; border-radius: 8px; cursor: pointer; margin-top: auto; }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <div class="sidebar">
+        <!-- Кнопка повернення до калькулятора зверху зліва -->
+        <button class="btn-back-calc" onclick="returnToCalc()">
+            🧮 До калькулятора
+        </button>
+
+        <div class="header">
+            <small>Загальний пробіг:</small>
+            <div id="total-val" style="font-size: 24px; font-weight: bold;">0.0 км</div>
+        </div>
+
+        <!-- Рядок пошуку міст або координат -->
+        <div class="search-container">
+            <div class="search-box">
+                <input type="text" id="searchInput" class="search-input" placeholder="🔍 Введіть місто або координати..." onkeydown="if(event.key==='Enter') performSearch()">
+                <button class="btn-search" onclick="performSearch()">Пошук</button>
+            </div>
+            <div id="searchResults" class="search-results"></div>
+        </div>
+
+        <button class="btn-transfer" onclick="transferData()">📥 ДОДАТИ ДО РОЗРАХУНКУ</button>
+        <button class="btn-save" onclick="saveCurrentRoute()">📸 ЗБЕРЕГТИ МАРШРУТ</button>
+
+        <div id="status">Клікніть на мапі або знайдіть точку</div>
+        
+        <div id="city-list"></div>
+
+        <hr>
+        <b style="font-size: 14px; color: #2c3e50;">🗂️ Історія (нові зверху):</b>
+        <div id="saved-list" style="margin-top: 10px;"></div>
+        
+        <button class="btn-clear" onclick="location.reload()">🗑️ Очистити мапу</button>
+    </div>
+    <div id="map"></div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    let map, routeLayer, waypoints = [], currentCityData = {};
+    const colors = ['#e74c3c', '#3498db', '#f1c40f', '#9b59b6', '#2ecc71', '#e67e22', '#1abc9c'];
+    let cityColorMap = { "Траса": "#95a5a6" };
+
+    window.onload = function() {
+        map = L.map('map', { 
+            center: [49.423, 26.987], 
+            zoom: 11,
+            preferCanvas: true 
+        });
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            crossOrigin: true 
+        }).addTo(map);
+
+        routeLayer = L.featureGroup().addTo(map);
+        loadSavedRoutes();
+
+        map.on('click', (e) => {
+            addWaypoint(e.latlng.lng, e.latlng.lat);
+        });
+    };
+
+    function addWaypoint(lng, lat) {
+        L.marker([lat, lng]).addTo(routeLayer);
+        waypoints.push([lng, lat]);
+        map.setView([lat, lng], map.getZoom());
+        if (waypoints.length >= 2) calculateDetailedRoute();
+    }
+
+    async function calculateDetailedRoute() {
+        document.getElementById('status').innerText = "⏳ Прокладаємо маршрут по дорогах...";
+        const coords = waypoints.map(p => p.join(',')).join(';');
+        
+        try {
+            const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`);
+            const data = await res.json();
+            
+            if (!data.routes || data.routes.length === 0) {
+                alert("Не вдалося прокласти маршрут!");
+                return;
+            }
+
+            routeLayer.clearLayers();
+            waypoints.forEach(p => L.marker([p[1], p[0]]).addTo(routeLayer));
+            
+            const path = data.routes[0].geometry.coordinates;
+            currentCityData = {};
+            let lastLoc = "Траса";
+
+            for (let i = 0; i < path.length - 1; i++) {
+                const p1 = [path[i][1], path[i][0]];
+                const p2 = [path[i+1][1], path[i+1][0]];
+                const dist = map.distance(p1, p2) / 1000;
+
+                if (i % 35 === 0) {
+                    try {
+                        const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${p1[0]}&lon=${p1[1]}&zoom=12`);
+                        const d = await r.json();
+                        lastLoc = d.address.city || d.address.town || d.address.village || "Траса";
+                    } catch(e) { lastLoc = "Траса"; }
+                }
+
+                currentCityData[lastLoc] = (currentCityData[lastLoc] || 0) + dist;
+
+                if (!cityColorMap[lastLoc]) {
+                    cityColorMap[lastLoc] = colors[Object.keys(cityColorMap).length % colors.length];
+                }
+
+                L.polyline([p1, p2], {
+                    color: cityColorMap[lastLoc], 
+                    weight: 7, 
+                    opacity: 0.9
+                }).addTo(routeLayer);
+            }
+
+            renderBreakdown((data.routes[0].distance / 1000).toFixed(1));
+        } catch (err) {
+            console.error(err);
+            document.getElementById('status').innerText = "❌ Помилка побудови маршруту";
+        }
+    }
+
+    function renderBreakdown(total) {
+        document.getElementById('total-val').innerText = total + " км";
+        const list = document.getElementById('city-list');
+        list.innerHTML = "";
+
+        for (let loc in currentCityData) {
+            const km = currentCityData[loc].toFixed(1);
+            if (km < 0.1) continue;
+            list.innerHTML += `
+                <div class="city-item" style="border-left-color: ${cityColorMap[loc]}">
+                    <span>${loc === "Траса" ? '🛣️' : '🏙️'} ${loc}</span>
+                    <span>${km} км</span>
+                </div>`;
+        }
+        document.getElementById('status').innerText = "✅ Розраховано по ділянках";
+    }
+
+    async function performSearch() {
+        const query = document.getElementById('searchInput').value.trim();
+        const resultsContainer = document.getElementById('searchResults');
+        resultsContainer.style.display = 'none';
+
+        if (!query) return;
+
+        const coordRegex = /^[-+]?([1-8]?\d(\.\d+)?|90(\.0+)?)[,\s]+[-+]?(180(\.0+)?|((1[0-7]\d)|([1-9]?\d))(\.\d+)?)$/;
+        if (coordRegex.test(query)) {
+            const coords = query.split(/[,\s]+/).map(Number);
+            addWaypoint(coords[1], coords[0]);
+            document.getElementById('searchInput').value = '';
+            return;
+        }
+
+        try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=ua&limit=5`);
+            const data = await res.json();
+
+            if (data.length === 0) {
+                alert("Нічого не знайдено!");
+                return;
+            }
+
+            if (data.length === 1) {
+                addWaypoint(parseFloat(data[0].lon), parseFloat(data[0].lat));
+                document.getElementById('searchInput').value = '';
+            } else {
+                resultsContainer.innerHTML = '';
+                data.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'search-item';
+                    div.innerText = item.display_name;
+                    div.onclick = () => {
+                        addWaypoint(parseFloat(item.lon), parseFloat(item.lat));
+                        resultsContainer.style.display = 'none';
+                        document.getElementById('searchInput').value = '';
+                    };
+                    resultsContainer.appendChild(div);
+                });
+                resultsContainer.style.display = 'block';
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Помилка з'єднання при пошуку.");
+        }
+    }
+
+    async function saveCurrentRoute() {
+        if (Object.keys(currentCityData).length === 0) return alert("Побудуйте маршрут!");
+        const name = prompt("Введіть назву маршруту (напр. Хмельницький-Вінниця):");
+        if (!name) return;
+
+        document.getElementById('status').innerText = "📸 Робимо скріншот...";
+        
+        const mapEl = document.getElementById('map');
+        const canvas = await html2canvas(mapEl, { useCORS: true });
+        const imgData = canvas.toDataURL("image/png");
+
+        const saved = JSON.parse(localStorage.getItem('tem_routes_final')) || [];
+        
+        saved.unshift({
+            name: name,
+            total: document.getElementById('total-val').innerText,
+            cities: currentCityData,
+            image: imgData,
+            date: new Date().toLocaleString()
+        });
+
+        localStorage.setItem('tem_routes_final', JSON.stringify(saved));
+        loadSavedRoutes();
+        document.getElementById('status').innerText = "✅ Збережено у верх списку";
+    }
+
+    function loadSavedRoutes() {
+        const container = document.getElementById('saved-list');
+        const saved = JSON.parse(localStorage.getItem('tem_routes_final')) || [];
+        container.innerHTML = saved.map((r, i) => `
+            <div class="route-card" onclick="this.classList.toggle('active'); selectRoute(${i})">
+                <button class="btn-del-route" onclick="event.stopPropagation(); deleteRoute(${i})">Видалити</button>
+                <b>${r.name}</b><br>
+                <small>${r.total} (${r.date})</small>
+                <img src="${r.image}" alt="карта">
+            </div>
+        `).join('');
+    }
+
+    function deleteRoute(i) {
+        if (!confirm("Видалити цей маршрут?")) return;
+        let saved = JSON.parse(localStorage.getItem('tem_routes_final'));
+        saved.splice(i, 1);
+        localStorage.setItem('tem_routes_final', JSON.stringify(saved));
+        loadSavedRoutes();
+    }
+
+    function selectRoute(i) {
+        const saved = JSON.parse(localStorage.getItem('tem_routes_final'));
+        currentCityData = saved[i].cities;
+        document.getElementById('status').innerText = "📍 Обрано: " + saved[i].name;
+    }
+
+    // ОНОВЛЕНА ФУНКЦІЯ: Зберігає дані, сповіщає первинне вікно та закриває вкладку карти
+    function transferData() {
+        if (Object.keys(currentCityData).length === 0) return alert("Побудуйте або оберіть маршрут зі списку!");
+        
+        // 1. Зберігаємо дані в локальне сховище
+        localStorage.setItem('map_to_calc_detailed', JSON.stringify(currentCityData));
+
+        // 2. Надсилаємо сигнал через BroadcastChannel для вже відкритого калькулятора
+        try {
+            const channel = new BroadcastChannel('tem_route_channel');
+            channel.postMessage({ action: 'load_route', data: currentCityData });
+        } catch(e) {
+            console.log("BroadcastChannel не підтримується", e);
+        }
+
+        // 3. Якщо карта відкрита з батьківського вікна (window.opener)
+        if (window.opener && !window.opener.closed) {
+            try {
+                if (typeof window.opener.loadRouteFromMap === 'function') {
+                    window.opener.loadRouteFromMap(currentCityData);
+                } else {
+                    window.opener.location.reload();
+                }
+            } catch (e) {
+                console.log("Помилка доступу до window.opener", e);
+            }
+            window.close();
+        } else {
+            // Якщо вікно закрити не вдалося або воно відкрите автономно
+            setTimeout(() => {
+                window.close();
+                // Якщо закриття блокується браузером, переходимо у цьому ж вікні
+                window.location.href = 'calc.html';
+            }, 100);
+        }
+    }
+
+    // Просте повернення до калькулятора (закриває вікно якщо можна, або переходить)
+    function returnToCalc() {
+        if (window.opener && !window.opener.closed) {
+            window.close();
+        } else {
+            window.location.href = 'calc.html';
+        }
+    }
+
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.search-container')) {
+            document.getElementById('searchResults').style.display = 'none';
+        }
+    });
+</script>
+</body>
+</html>

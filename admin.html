@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Панель Програміста</title>
+    <style>
+        body { font-family: sans-serif; background: #111; color: #fff; padding: 20px; }
+        .card { background: #222; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        button { padding: 10px 20px; background: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-right: 10px; }
+        pre { background: #000; padding: 15px; border-radius: 5px; color: #00ff00; overflow-x: auto; }
+    </style>
+</head>
+<body>
+
+    <h2>👨‍💻 Панель Програміста</h2>
+    
+    <div class="card">
+        <h3>Поточний користувач: <span id="userInfo" style="color: #2ecc71;"></span></h3>
+        <button onclick="location.href='index.html'">🏠 На Головну панель</button>
+        <button onclick="location.href='calc.html'">🧮 До Калькулятора</button>
+        <button onclick="logout()" style="background: #e74c3c;">Вийти з акаунта</button>
+    </div>
+
+    <div class="card">
+        <h3>Збережені дані в локальній системі (localStorage):</h3>
+        <pre id="storageData"></pre>
+    </div>
+
+    <script>
+        const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+        
+        if (!currentUser || currentUser.role !== 'programmer') {
+            alert("Доступ заборонено! Ця сторінка лише для Програміста.");
+            window.location.href = 'login.html';
+        } else {
+            document.getElementById('userInfo').innerText = currentUser.username + " (" + currentUser.role + ")";
+            document.getElementById('storageData').innerText = JSON.stringify(localStorage, null, 2);
+        }
+
+        function logout() {
+            localStorage.removeItem('currentUser');
+            window.location.href = 'login.html';
+        }
+    </script>
+</body>
+</html>
