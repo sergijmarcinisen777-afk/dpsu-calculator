@@ -17,12 +17,17 @@
         .btn-green { background: #27ae60; color: white; }
         .btn-blue { background: #2980b9; color: white; }
         .btn-orange { background: #d35400; color: white; }
+        .btn-purple { background: #8e44ad; color: white; }
 
         .city-box { margin-top: 20px; background: white; border-radius: 8px; color: #333; overflow-x: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
-        .city-table { width: 100%; border-collapse: collapse; min-width: 850px; }
+        .city-table { width: 100%; border-collapse: collapse; min-width: 880px; }
         .city-table th { background: #2c3e50; color: white; font-size: 10px; padding: 10px 5px; text-transform: uppercase; }
         .city-table td { padding: 5px; border-bottom: 1px solid #eee; text-align: center; }
         .city-table input { width: 100%; border: 1px solid #dfe6e9; padding: 4px; font-size: 11px; text-align: center; background: #f9f9f9; color: #000 !important; }
+
+        /* Перетягування (Drag and Drop) */
+        .drag-handle { cursor: grab; font-weight: bold; color: #7f8c8d; user-select: none; font-size: 14px; }
+        .dragging { opacity: 0.4; background: #e8f0fe !important; }
 
         .results { margin-top: 20px; padding: 15px; background: #2ecc71; color: #1b3022; border-radius: 8px; display: none; }
         .res-row { display: flex; justify-content: space-between; font-weight: bold; border-bottom: 1px solid rgba(0,0,0,0.1); padding: 8px 0; }
@@ -35,6 +40,13 @@
         .btn-hwy { padding: 4px 8px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; background: #95a5a6; color: #fff; font-size: 11px; }
         .btn-hwy.active { background: #27ae60; }
 
+        /* Стилі для кнопок дій у рядку */
+        .btn-row-action { background: none; border: none; cursor: pointer; font-size: 13px; padding: 2px 4px; }
+        .btn-row-copy { color: #2980b9; }
+        .btn-row-copy:hover { color: #1a5276; }
+        .btn-row-del { color: #e74c3c; font-weight: bold; }
+        .btn-row-del:hover { color: #922b21; }
+
         #trailer_input_container { 
             margin-top: 10px; 
             padding: 10px; 
@@ -43,6 +55,11 @@
             display: none; 
             border-left: 4px solid #2ecc71;
         }
+
+        /* Архів розрахунків */
+        .calc-archive-panel { margin-top: 25px; background: rgba(255,255,255,0.08); padding: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); }
+        .calc-archive-list { list-style: none; padding: 0; margin: 10px 0 0 0; }
+        .calc-archive-item { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 4px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
     </style>
 </head>
 <body onfocus="syncData()">
@@ -77,7 +94,7 @@
 <div class="main-content">
     <h3>🧮 РОЗРАХУНОК ЕКСПЛУАТАЦІЇ</h3>
 	
-	<label>Конфігурація:</label>
+    <label>Конфігурація:</label>
     <button id="trailerBtn" class="btn btn-toggle" onclick="toggleTrailer()">🚚 АВТОПОЇЗД: ВИМКН</button>
 
     <div id="trailer_input_container">
@@ -86,7 +103,7 @@
     </div>
 
     <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr 40px 50px; gap: 8px; align-items: end; margin-top:10px;">
-        <div><label>Маршрут</label><input type="text" id="m_name" placeholder="Напр: вул. Шевченка — м.Хмельницький"></div>
+        <div><label>Маршрут</label><input type="text" id="m_name" placeholder="Напр: Хмельницький - Красилів"></div>
         <div><label>Відст. (км)</label><input type="number" id="m_dist" value="0"></div>
         <div><label>Вантаж</label><input type="text" id="m_cargo" placeholder="-"></div>
         <div><label>Вага (т)</label><input type="number" id="m_weight" value="0"></div>
@@ -99,20 +116,24 @@
         <table class="city-table">
             <thead>
                 <tr>
-                    <th style="width:28%">Маршрут руху</th>
+                    <th style="width:4%"></th>
+                    <th style="width:26%">Маршрут руху</th>
                     <th style="width:10%">Відст. (км)</th>
                     <th style="width:18%">Вантаж</th>
                     <th style="width:10%">Вага (т)</th>
                     <th style="width:10%">Інд. К (%)</th>
                     <th style="width:8%">Траса</th>
-                    <th style="width:6%"></th>
+                    <th style="width:8%"></th>
                 </tr>
             </thead>
             <tbody id="city_rows"></tbody>
         </table>
     </div>
     
-    <button class="btn btn-green" style="font-size:18px; height:55px; margin-top:20px;" onclick="calculate()">ВИКОНАТИ РОЗРАХУНОК</button>
+    <div style="display: flex; gap: 10px; margin-top: 20px;">
+        <button class="btn btn-green" style="font-size:16px; height:50px; flex: 2;" onclick="calculate()">ВИКОНАТИ РОЗРАХУНОК</button>
+        <button class="btn btn-purple" style="font-size:14px; height:50px; flex: 1;" onclick="saveCalculationRecord()">💾 ЗБЕРЕГТИ РОЗРАХУНОК</button>
+    </div>
 
     <div id="results" class="results">
         <div class="res-row"><span>ВИТРАТА ПАЛЬНОГО (Q):</span> <span><span id="r_q">0</span> Л</span></div>
@@ -120,13 +141,26 @@
             <div class="res-row" style="font-size:12px;"><span>Моторна олива:</span> <span><span id="r_om">0</span> л</span></div>
             <div class="res-row" style="font-size:12px;"><span>Трансмісійна:</span> <span><span id="r_ot">0</span> л</span></div>
             <div class="res-row" style="font-size:12px;"><span>Спеціальна:</span> <span><span id="r_os">0</span> л</span></div>
-            <div class="res-row" style="font-size:12px;"><span>Пластична:</span> <span><span id="r_op">0</span> кг</span></div>
+            <div class="res-row" style="font-size:12px;"><span>Пластична:</span> <span><span id="r_op">0</span> л</span></div>
         </div>
         <button class="btn btn-blue" style="background:#1b3022; margin-top:15px;" onclick="saveForReport()">📄 СФОРМУВАТИ ЗВІТ / ДОРОЖНІЙ ЛИСТ</button>
+    </div>
+
+    <!-- АРХІВ ЗБЕРЕЖЕНИХ РОЗРАХУНКІВ -->
+    <div class="calc-archive-panel">
+        <h4 style="margin: 0 0 10px 0; color: #f1c40f;">💾 Збережені розрахунки (Архів)</h4>
+        <ul id="calcArchiveList" class="calc-archive-list">
+            <li style="color: #aaa; font-size: 11px;">Немає збережених розрахунків</li>
+        </ul>
     </div>
 </div>
 
 <script>
+    function cleanEmoji(text) {
+        if (!text) return "";
+        return text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').trim();
+    }
+
     try {
         const channel = new BroadcastChannel('tem_route_channel');
         channel.onmessage = function(event) {
@@ -144,6 +178,7 @@
 
     window.onload = function() {
         syncData();
+        renderCalcArchives();
     };
 
     function syncData() {
@@ -191,7 +226,7 @@
     function addManualRow() {
         const isHwy = document.getElementById('m_is_hwy').classList.contains('active');
         appendRow(
-            document.getElementById('m_name').value || "Маршрут",
+            cleanEmoji(document.getElementById('m_name').value) || "Маршрут",
             document.getElementById('m_dist').value || 0,
             document.getElementById('m_cargo').value || "-",
             document.getElementById('m_weight').value || 0,
@@ -205,28 +240,21 @@
     }
 
     function importFromMap(data) {
+        document.getElementById('city_rows').innerHTML = ''; // Очищуємо перед завантаженням нового маршруту
         const cityDb = JSON.parse(localStorage.getItem('city_db_permanent')) || {};
         
         if (Array.isArray(data)) {
             data.forEach(item => {
                 let indK = 0;
+                let cleanRouteName = cleanEmoji(item.name);
                 for (let cityName in cityDb) {
-                    if (item.name.includes(cityName)) {
+                    if (cleanRouteName.includes(cityName)) {
                         indK = cityDb[cityName];
                         break;
                     }
                 }
-                appendRow(item.name, item.km, "-", 0, indK, item.isHighway);
+                appendRow(cleanRouteName, item.km, "-", 0, indK, item.isHighway);
             });
-        } else {
-            for (let loc in data) {
-                const km = parseFloat(data[loc]).toFixed(1);
-                if (km < 0.1) continue;
-                const isHighway = (loc === "Траса");
-                const name = isHighway ? "🛣️ Траса" : `🏙️ ${loc}`;
-                let indK = (!isHighway && cityDb[loc]) ? cityDb[loc] : 0;
-                appendRow(name, km, "-", 0, indK, isHighway);
-            }
         }
         calculate();
     }
@@ -234,18 +262,88 @@
     function appendRow(route, dist, cargo, weight, indk, isHighway = false) {
         const tbody = document.getElementById('city_rows');
         const row = document.createElement('tr');
+        row.draggable = true;
         const hwyClass = isHighway ? "btn-hwy active" : "btn-hwy";
         
         row.innerHTML = `
-            <td><input type="text" value="${route}"></td>
+            <td><span class="drag-handle" title="Перетягніть для зміни порядку">⋮⋮</span></td>
+            <td><input type="text" value="${cleanEmoji(route)}"></td>
             <td><input type="number" value="${dist}" oninput="calculate()"></td>
             <td><input type="text" value="${cargo || '-'}"></td>
             <td><input type="number" value="${weight}" oninput="calculate()"></td>
             <td><input type="number" value="${indk}" style="color:#d35400 !important;" oninput="calculate()"></td>
             <td><button class="${hwyClass}" onclick="this.classList.toggle('active'); calculate();">Т</button></td>
-            <td><button onclick="this.parentElement.parentElement.remove(); calculate();" style="background:none; border:none; color:#e74c3c; cursor:pointer; font-weight:bold;">✕</button></td>
+            <td style="white-space: nowrap;">
+                <button class="btn-row-action btn-row-copy" title="Копіювати рядок у кінець списку" onclick="duplicateRow(this)">📋</button>
+                <button class="btn-row-action btn-row-del" title="Видалити" onclick="this.parentElement.parentElement.remove(); calculate();">✕</button>
+            </td>
         `;
-        tbody.appendChild(row);
+
+        setupDragAndDrop(row);
+        tbody.appendChild(row); // Завжди додаємо в самий низ
+    }
+
+    function duplicateRow(btn) {
+        const currentRow = btn.closest('tr');
+        const ins = currentRow.querySelectorAll('input');
+        const hwyBtn = currentRow.querySelector('.btn-hwy');
+
+        const route = ins[0].value;
+        const dist = ins[1].value;
+        const cargo = ins[2].value;
+        const weight = ins[3].value;
+        const indk = ins[4].value;
+        const isHighway = hwyBtn ? hwyBtn.classList.contains('active') : false;
+
+        // Викликом appendRow без targetElement запис потрапляє в самий кінець списку
+        appendRow(route, dist, cargo, weight, indk, isHighway);
+        calculate();
+    }
+
+    let dragSrcEl = null;
+
+    function setupDragAndDrop(row) {
+        row.addEventListener('dragstart', function(e) {
+            dragSrcEl = this;
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        });
+
+        row.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+        });
+
+        row.addEventListener('dragenter', function() {
+            this.style.background = "#e8f0fe";
+        });
+
+        row.addEventListener('dragleave', function() {
+            this.style.background = "";
+        });
+
+        row.addEventListener('drop', function(e) {
+            e.stopPropagation();
+            this.style.background = "";
+            if (dragSrcEl !== this) {
+                const tbody = document.getElementById('city_rows');
+                const rowsArr = Array.from(tbody.children);
+                const srcIdx = rowsArr.indexOf(dragSrcEl);
+                const targetIdx = rowsArr.indexOf(this);
+
+                if (srcIdx < targetIdx) {
+                    tbody.insertBefore(dragSrcEl, this.nextSibling);
+                } else {
+                    tbody.insertBefore(dragSrcEl, this);
+                }
+                calculate();
+            }
+        });
+
+        row.addEventListener('dragend', function() {
+            this.classList.remove('dragging');
+            document.querySelectorAll('#city_rows tr').forEach(r => r.style.background = "");
+        });
     }
 
     function displayActiveCoeffs() {
@@ -338,6 +436,133 @@
         document.getElementById('results').style.display = 'block';
     }
 
+    function getCurrentRowsData() {
+        const rows = [];
+        document.querySelectorAll('#city_rows tr').forEach(row => {
+            const ins = row.querySelectorAll('input');
+            const hwyBtn = row.querySelector('.btn-hwy');
+            rows.push({
+                route: cleanEmoji(ins[0].value),
+                dist: parseFloat(ins[1].value) || 0,
+                cargo: ins[2].value || "-",
+                weight: parseFloat(ins[3].value) || 0,
+                indK: parseFloat(ins[4].value) || 0,
+                isHighway: hwyBtn ? hwyBtn.classList.contains('active') : false
+            });
+        });
+        return rows;
+    }
+
+    function saveCalculationRecord() {
+        const rows = getCurrentRowsData();
+        if (rows.length === 0) {
+            alert("Таблиця розрахунку порожня!");
+            return;
+        }
+
+        const carName = document.getElementById('carSelect').value || "ТЗ";
+        let title = prompt("Введіть назву або примітку розрахунку:", `Розрахунок (${carName}) - ${new Date().toLocaleDateString('uk-UA')}`);
+        if (!title) return;
+        title = cleanEmoji(title);
+
+        const archives = JSON.parse(localStorage.getItem('calc_saved_records')) || [];
+        archives.unshift({
+            id: Date.now(),
+            date: new Date().toLocaleString('uk-UA'),
+            title: title,
+            carName: carName,
+            trailerActive: trailerActive,
+            gTrailler: document.getElementById('g_trailler').value,
+            rows: rows,
+            totalQ: document.getElementById('r_q').innerText
+        });
+
+        localStorage.setItem('calc_saved_records', JSON.stringify(archives));
+        renderCalcArchives();
+        alert("Розрахунок успішно збережено в архів!");
+    }
+
+    function renderCalcArchives() {
+        const archives = JSON.parse(localStorage.getItem('calc_saved_records')) || [];
+        const container = document.getElementById('calcArchiveList');
+        container.innerHTML = '';
+
+        if (archives.length === 0) {
+            container.innerHTML = `<li style="color: #aaa; font-size: 11px;">Немає збережених розрахунків</li>`;
+            return;
+        }
+
+        archives.forEach(item => {
+            const li = document.createElement('li');
+            li.className = 'calc-archive-item';
+            li.innerHTML = `
+                <div>
+                    <strong>${cleanEmoji(item.title)}</strong>
+                    <br><small style="color:#bdc3c7;">⏱️ ${item.date} | ТЗ: ${item.carName} | Витрата: <b>${item.totalQ} л</b></small>
+                </div>
+                <div style="display:flex; gap:4px;">
+                    <button class="btn btn-blue" style="padding:4px 8px; font-size:10px; margin:0;" onclick="loadCalcRecord(${item.id})">📂 Відновити</button>
+                    <button class="btn btn-orange" style="padding:4px 8px; font-size:10px; margin:0;" onclick="editCalcRecord(${item.id})">✏️</button>
+                    <button class="btn" style="padding:4px 8px; font-size:10px; margin:0; background:#e74c3c; color:white;" onclick="deleteCalcRecord(${item.id})">🗑️</button>
+                </div>
+            `;
+            container.appendChild(li);
+        });
+    }
+
+    function loadCalcRecord(id) {
+        const archives = JSON.parse(localStorage.getItem('calc_saved_records')) || [];
+        const rec = archives.find(a => a.id === id);
+        if (!rec) return;
+
+        if (confirm(`Відновити збережений розрахунок "${rec.title}"?`)) {
+            document.getElementById('city_rows').innerHTML = '';
+            
+            if (rec.carName) {
+                document.getElementById('carSelect').value = rec.carName;
+                loadCar();
+            }
+
+            if (rec.trailerActive && !trailerActive) {
+                toggleTrailer();
+            } else if (!rec.trailerActive && trailerActive) {
+                toggleTrailer();
+            }
+            
+            if (rec.gTrailler) {
+                document.getElementById('g_trailler').value = rec.gTrailler;
+            }
+
+            rec.rows.forEach(r => {
+                appendRow(r.route, r.dist, r.cargo, r.weight, r.indK, r.isHighway);
+            });
+
+            calculate();
+        }
+    }
+
+    function editCalcRecord(id) {
+        let archives = JSON.parse(localStorage.getItem('calc_saved_records')) || [];
+        const idx = archives.findIndex(a => a.id === id);
+        if (idx === -1) return;
+
+        let newTitle = prompt("Введіть нову назву/примітку розрахунку:", archives[idx].title);
+        if (!newTitle) return;
+
+        archives[idx].title = cleanEmoji(newTitle);
+        localStorage.setItem('calc_saved_records', JSON.stringify(archives));
+        renderCalcArchives();
+    }
+
+    function deleteCalcRecord(id) {
+        if (confirm("Видалити цей запис з архіву розрахунків?")) {
+            let archives = JSON.parse(localStorage.getItem('calc_saved_records')) || [];
+            archives = archives.filter(a => a.id !== id);
+            localStorage.setItem('calc_saved_records', JSON.stringify(archives));
+            renderCalcArchives();
+        }
+    }
+
     function saveForReport() {
         const carName = document.getElementById('carSelect').value;
         const car = JSON.parse(localStorage.getItem('selectedCar'));
@@ -384,7 +609,7 @@
             const ins = row.querySelectorAll('input');
             const hwyBtn = row.querySelector('.btn-hwy');
             
-            const route = ins[0].value;
+            const route = cleanEmoji(ins[0].value);
             const dist = parseFloat(ins[1].value) || 0;
             const cargo = ins[2].value;
             const weight = parseFloat(ins[3].value) || 0;
