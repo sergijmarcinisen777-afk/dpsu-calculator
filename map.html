@@ -25,7 +25,6 @@
         
         #map { flex: 1; height: 100%; background: #f0f0f0; }
         
-        /* Кнопка повернення до калькулятора */
         .btn-back-calc {
             background: #2c3e50;
             color: white;
@@ -47,7 +46,6 @@
 
         .header { background: #1a73e8; color: white; padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 10px; }
         
-        /* Блок пошуку */
         .search-container { position: relative; margin-bottom: 10px; }
         .search-box { display: flex; gap: 5px; }
         .search-input { 
@@ -82,7 +80,6 @@
         
         .city-item { display: flex; justify-content: space-between; padding: 8px; margin-bottom: 5px; border-left: 6px solid #ccc; background: #f1f3f4; font-size: 12px; font-weight: bold; border-radius: 0 4px 4px 0; }
         
-        /* Картки збереження */
         .route-card { background: #f8f9fa; border: 1px solid #ddd; padding: 10px; border-radius: 8px; margin-bottom: 12px; cursor: pointer; position: relative; transition: 0.3s; }
         .route-card:hover { border-color: #1a73e8; background: #f1f7ff; }
         .route-card img { width: 100%; border-radius: 5px; margin-top: 8px; border: 1px solid #ccc; display: none; }
@@ -97,7 +94,6 @@
 
 <div id="app-container">
     <div class="sidebar">
-        <!-- Кнопка повернення до калькулятора зверху зліва -->
         <button class="btn-back-calc" onclick="returnToCalc()">
             🧮 До калькулятора
         </button>
@@ -107,7 +103,6 @@
             <div id="total-val" style="font-size: 24px; font-weight: bold;">0.0 км</div>
         </div>
 
-        <!-- Рядок пошуку міст або координат -->
         <div class="search-container">
             <div class="search-box">
                 <input type="text" id="searchInput" class="search-input" placeholder="🔍 Введіть місто або координати..." onkeydown="if(event.key==='Enter') performSearch()">
@@ -134,9 +129,18 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    let map, routeLayer, waypoints = [], currentCityData = {};
-    const colors = ['#e74c3c', '#3498db', '#f1c40f', '#9b59b6', '#2ecc71', '#e67e22', '#1abc9c'];
-    let cityColorMap = { "Траса": "#95a5a6" };
+    let map, routeLayer, waypoints = [], currentCityData = {}, routeSegments = [];
+    
+    // Палітра яскравих кольорів ДЛЯ МІСТ (без сірого)
+    const colors = ['#1a73e8', '#2ecc71', '#e74c3c', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22'];
+    
+    // "Траса" жорстко зафіксована за сірим кольором (#7f8c8d)
+    let cityColorMap = { "Траса": "#7f8c8d" };
+
+    function cleanEmoji(text) {
+        if (!text) return "";
+        return text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F800}-\u{1F8FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').trim();
+    }
 
     window.onload = function() {
         map = L.map('map', { 
@@ -164,8 +168,39 @@
         if (waypoints.length >= 2) calculateDetailedRoute();
     }
 
+    function delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    // Отримання назви з розрізненням Місто / Траса
+    async function getLocName(lat, lon, isExactPoint = false) {
+        try {
+            const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=16&addressdetails=1`);
+            const d = await r.json();
+            
+            if (d && d.address) {
+                const addr = d.address;
+                // Вважаємо містом лише великі населені пункти (місто, смт, райцентр) або точки, обрані користувачем
+                const cityName = addr.city || addr.town || addr.township;
+                
+                if (cityName) {
+                    return cleanEmoji(cityName);
+                }
+                
+                // Якщо це точка поставлена користувачем (старт/фініш), допускаємо смт/селище
+                if (isExactPoint) {
+                    const villageName = addr.village || addr.suburb || addr.hamlet;
+                    if (villageName) return cleanEmoji(villageName);
+                }
+            }
+            return "Траса";
+        } catch(e) { 
+            return "Траса"; 
+        }
+    }
+
     async function calculateDetailedRoute() {
-        document.getElementById('status').innerText = "⏳ Прокладаємо маршрут по дорогах...";
+        document.getElementById('status').innerText = "⏳ Прокладаємо маршрут...";
         const coords = waypoints.map(p => p.join(',')).join(';');
         
         try {
@@ -182,25 +217,56 @@
             
             const path = data.routes[0].geometry.coordinates;
             currentCityData = {};
-            let lastLoc = "Траса";
+            routeSegments = [];
+            
+            // Скидаємо відповідність кольорів крім Траси
+            cityColorMap = { "Траса": "#7f8c8d" };
+            let colorIndex = 0;
+
+            // Визначаємо стартову та кінцеву локації точно
+            let startLoc = await getLocName(path[0][1], path[0][0], true);
+            await delay(250);
+            let endLoc = await getLocName(path[path.length - 1][1], path[path.length - 1][0], true);
+            await delay(250);
+
+            const totalPoints = path.length;
+            const step = Math.max(1, Math.floor(totalPoints / 15));
+
+            let lastLoc = startLoc;
+            let currentSegmentDist = 0;
 
             for (let i = 0; i < path.length - 1; i++) {
                 const p1 = [path[i][1], path[i][0]];
                 const p2 = [path[i+1][1], path[i+1][0]];
                 const dist = map.distance(p1, p2) / 1000;
 
-                if (i % 35 === 0) {
-                    try {
-                        const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${p1[0]}&lon=${p1[1]}&zoom=12`);
-                        const d = await r.json();
-                        lastLoc = d.address.city || d.address.town || d.address.village || "Траса";
-                    } catch(e) { lastLoc = "Траса"; }
+                let locNow = lastLoc;
+                
+                // Перевіряємо чи ми в місті старту, місті фінішу, чи на трасі
+                if (i === 0) {
+                    locNow = startLoc;
+                } else if (i >= path.length - 15) {
+                    locNow = endLoc;
+                } else if (i % step === 0) {
+                    locNow = await getLocName(p1[0], p1[1], false);
+                    await delay(150);
                 }
 
+                if (i > 0 && locNow !== lastLoc) {
+                    if (currentSegmentDist >= 0.1) {
+                        routeSegments.push({ loc: lastLoc, dist: currentSegmentDist });
+                    }
+                    currentSegmentDist = 0;
+                    lastLoc = locNow;
+                }
+
+                currentSegmentDist += dist;
                 currentCityData[lastLoc] = (currentCityData[lastLoc] || 0) + dist;
 
+                // Призначення кольору
                 if (!cityColorMap[lastLoc]) {
-                    cityColorMap[lastLoc] = colors[Object.keys(cityColorMap).length % colors.length];
+                    cityColorMap[lastLoc] = colors[colorIndex % colors.length];
+                    colorIndex++;
                 }
 
                 L.polyline([p1, p2], {
@@ -208,6 +274,10 @@
                     weight: 7, 
                     opacity: 0.9
                 }).addTo(routeLayer);
+            }
+
+            if (currentSegmentDist >= 0.1) {
+                routeSegments.push({ loc: lastLoc, dist: currentSegmentDist });
             }
 
             renderBreakdown((data.routes[0].distance / 1000).toFixed(1));
@@ -226,8 +296,8 @@
             const km = currentCityData[loc].toFixed(1);
             if (km < 0.1) continue;
             list.innerHTML += `
-                <div class="city-item" style="border-left-color: ${cityColorMap[loc]}">
-                    <span>${loc === "Траса" ? '🛣️' : '🏙️'} ${loc}</span>
+                <div class="city-item" style="border-left-color: ${cityColorMap[loc] || '#7f8c8d'}">
+                    <span>${loc}</span>
                     <span>${km} км</span>
                 </div>`;
         }
@@ -266,7 +336,7 @@
                 data.forEach(item => {
                     const div = document.createElement('div');
                     div.className = 'search-item';
-                    div.innerText = item.display_name;
+                    div.innerText = cleanEmoji(item.display_name);
                     div.onclick = () => {
                         addWaypoint(parseFloat(item.lon), parseFloat(item.lat));
                         resultsContainer.style.display = 'none';
@@ -284,8 +354,9 @@
 
     async function saveCurrentRoute() {
         if (Object.keys(currentCityData).length === 0) return alert("Побудуйте маршрут!");
-        const name = prompt("Введіть назву маршруту (напр. Хмельницький-Вінниця):");
+        let name = prompt("Введіть назву маршруту (напр. Хмельницький-Деражня):");
         if (!name) return;
+        name = cleanEmoji(name);
 
         document.getElementById('status').innerText = "📸 Робимо скріншот...";
         
@@ -299,6 +370,7 @@
             name: name,
             total: document.getElementById('total-val').innerText,
             cities: currentCityData,
+            segments: routeSegments,
             image: imgData,
             date: new Date().toLocaleString()
         });
@@ -314,7 +386,7 @@
         container.innerHTML = saved.map((r, i) => `
             <div class="route-card" onclick="this.classList.toggle('active'); selectRoute(${i})">
                 <button class="btn-del-route" onclick="event.stopPropagation(); deleteRoute(${i})">Видалити</button>
-                <b>${r.name}</b><br>
+                <b>${cleanEmoji(r.name)}</b><br>
                 <small>${r.total} (${r.date})</small>
                 <img src="${r.image}" alt="карта">
             </div>
@@ -332,29 +404,60 @@
     function selectRoute(i) {
         const saved = JSON.parse(localStorage.getItem('tem_routes_final'));
         currentCityData = saved[i].cities;
-        document.getElementById('status').innerText = "📍 Обрано: " + saved[i].name;
+        routeSegments = saved[i].segments || [];
+        document.getElementById('status').innerText = "📍 Обрано: " + cleanEmoji(saved[i].name);
     }
 
-    // ОНОВЛЕНА ФУНКЦІЯ: Зберігає дані, сповіщає первинне вікно та закриває вкладку карти
     function transferData() {
-        if (Object.keys(currentCityData).length === 0) return alert("Побудуйте або оберіть маршрут зі списку!");
-        
-        // 1. Зберігаємо дані в локальне сховище
-        localStorage.setItem('map_to_calc_detailed', JSON.stringify(currentCityData));
+        if (routeSegments.length === 0 && Object.keys(currentCityData).length === 0) {
+            return alert("Побудуйте або оберіть маршрут зі списку!");
+        }
 
-        // 2. Надсилаємо сигнал через BroadcastChannel для вже відкритого калькулятора
+        const formattedRows = [];
+
+        if (routeSegments.length > 0) {
+            for (let i = 0; i < routeSegments.length; i++) {
+                const seg = routeSegments[i];
+                const fromLoc = cleanEmoji(seg.loc);
+                let toLoc = (i < routeSegments.length - 1) ? cleanEmoji(routeSegments[i + 1].loc) : fromLoc;
+
+                const routeName = (fromLoc === toLoc) ? `${fromLoc} - ${fromLoc}` : `${fromLoc} - ${toLoc}`;
+                formattedRows.push({
+                    name: routeName,
+                    km: parseFloat(seg.dist).toFixed(1),
+                    isHighway: (fromLoc === "Траса" || toLoc === "Траса")
+                });
+            }
+        } else {
+            const locKeys = Object.keys(currentCityData);
+            for (let i = 0; i < locKeys.length; i++) {
+                const loc = cleanEmoji(locKeys[i]);
+                const nextLoc = (i < locKeys.length - 1) ? cleanEmoji(locKeys[i + 1]) : loc;
+                const km = parseFloat(currentCityData[locKeys[i]]).toFixed(1);
+                if (km < 0.1) continue;
+
+                const routeName = (loc === nextLoc) ? `${loc} - ${loc}` : `${loc} - ${nextLoc}`;
+                formattedRows.push({
+                    name: routeName,
+                    km: km,
+                    isHighway: (loc === "Траса")
+                });
+            }
+        }
+
+        localStorage.setItem('map_to_calc_detailed', JSON.stringify(formattedRows));
+
         try {
             const channel = new BroadcastChannel('tem_route_channel');
-            channel.postMessage({ action: 'load_route', data: currentCityData });
+            channel.postMessage({ action: 'load_route', data: formattedRows });
         } catch(e) {
             console.log("BroadcastChannel не підтримується", e);
         }
 
-        // 3. Якщо карта відкрита з батьківського вікна (window.opener)
         if (window.opener && !window.opener.closed) {
             try {
                 if (typeof window.opener.loadRouteFromMap === 'function') {
-                    window.opener.loadRouteFromMap(currentCityData);
+                    window.opener.loadRouteFromMap(formattedRows);
                 } else {
                     window.opener.location.reload();
                 }
@@ -363,21 +466,18 @@
             }
             window.close();
         } else {
-            // Якщо вікно закрити не вдалося або воно відкрите автономно
             setTimeout(() => {
                 window.close();
-                // Якщо закриття блокується браузером, переходимо у цьому ж вікні
-                window.location.href = 'calc.html';
+                window.location.href = 'calc_2.html';
             }, 100);
         }
     }
 
-    // Просте повернення до калькулятора (закриває вікно якщо можна, або переходить)
     function returnToCalc() {
         if (window.opener && !window.opener.closed) {
             window.close();
         } else {
-            window.location.href = 'calc.html';
+            window.location.href = 'calc_2.html';
         }
     }
 
